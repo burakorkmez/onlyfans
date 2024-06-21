@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  name         String
+  image        String?
+  isSubscribed Boolean @default(false)
+  customerId   String? @unique // stripe customer id
+
+  subscription Subscription?
+  orders       Order[]
+  comments     Comment[]
+  likes        Like[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id        String  @id @default(cuid())
+  mediaUrl  String?
+  mediaType String?
+  text      String
+  userId    String
+  likes     Int     @default(0)
+  isPublic  Boolean @default(false)
+
+  comments  Comment[]
+  likesList Like[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id     String @id @default(cuid())
+  text   String
+  userId String
+  postId String
+
+  post Post @relation(fields: [postId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model Like {
+  id     String @id @default(cuid())
+  userId String
+  postId String
+
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id])
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  planId    String
+  price     Int      @default(0)
+  startDate DateTime @default(now())
+  endDate   DateTime
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model Product {
+  id         String  @id @default(cuid())
+  name       String
+  image      String
+  price      Int
+  isArchived Boolean @default(false)
+
+  orders Order[]
+}
+
+model Order {
+  id                String   @id @default(cuid())
+  userId            String
+  productId         String
+  price             Int
+  isPaid            Boolean  @default(false)
+  size              String
+  orderDate         DateTime @default(now())
+  shippingAddressId String?
+
+  user            User             @relation(fields: [userId], references: [id])
+  product         Product          @relation(fields: [productId], references: [id])
+  shippingAddress ShippingAddress? @relation(fields: [shippingAddressId], references: [id])
+
+  @@index([userId])
+  @@index([productId])
+}
+
+model ShippingAddress {
+  id         String  @id @default(cuid())
+  address    String
+  city       String
+  state      String?
+  postalCode String
+  country    String
+
+  order Order[]
+}
